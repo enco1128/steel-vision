@@ -1,0 +1,68 @@
+"""ORM 模型：卷(coils) / 缺陷(defects) / 报警(alarms) / 用户(users)。
+
+归档范式对齐 SCADA-LTS 的"批次+历史事件"组织：一"卷"= 一次连续检测周期，
+所有缺陷/报警/复核均挂在卷下，报表与导出以卷为单元。
+"""
+from __future__ import annotations
+
+import time
+
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Text
+
+from .db import Base
+
+
+def now_str() -> str:
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), unique=True, nullable=False)
+    password = Column(String(128), nullable=False)
+    role = Column(String(16), default="viewer")  # admin / operator / viewer
+
+
+class Coil(Base):
+    __tablename__ = "coils"
+    id = Column(Integer, primary_key=True)
+    coil_no = Column(String(64), unique=True, nullable=False, index=True)
+    start_ts = Column(String(32), default=now_str)
+    end_ts = Column(String(32), default="")
+    source = Column(String(256), default="")
+    frames_total = Column(Integer, default=0)
+    length_m = Column(Float, default=0.0)
+    defect_count = Column(Integer, default=0)
+    quality_grade = Column(String(4), default="")
+    status = Column(String(16), default="running")  # running / closed
+
+
+class Defect(Base):
+    __tablename__ = "defects"
+    id = Column(Integer, primary_key=True)
+    coil_id = Column(Integer, ForeignKey("coils.id"), index=True, nullable=False)
+    ts = Column(String(32), default=now_str)
+    frame_idx = Column(Integer, default=0)
+    class_id = Column(Integer, default=0)
+    cls_name = Column(String(64), default="")
+    conf = Column(Float, default=0.0)
+    x1 = Column(Float, default=0.0)
+    y1 = Column(Float, default=0.0)
+    x2 = Column(Float, default=0.0)
+    y2 = Column(Float, default=0.0)
+    evidence_path = Column(String(256), default="")
+    review_status = Column(String(16), default="pending")  # pending/confirmed/false_alarm
+    review_note = Column(Text, default="")
+
+
+class Alarm(Base):
+    __tablename__ = "alarms"
+    id = Column(Integer, primary_key=True)
+    coil_id = Column(Integer, ForeignKey("coils.id"), index=True, nullable=True)
+    rule = Column(String(64), default="")
+    level = Column(String(8), default="warn")  # info / warn / critical
+    message = Column(Text, default="")
+    ts = Column(String(32), default=now_str)
+    acked = Column(Integer, default=0)
+    acked_by = Column(String(64), default="")

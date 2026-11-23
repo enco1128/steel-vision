@@ -1,0 +1,657 @@
+/* ============================================================================
+   SteelVision 工业级 HMI 设计系统（v0.9 字号上调 · 深浅双主题）
+   设计依据（设计迁移，非代码复制）：
+   - ISA-101 高性能 HMI：中性灰背景/低刺激，颜色仅用于表达异常与状态，
+     正常状态保持灰阶，避免"圣诞树"效应；浅色主题即 ISA-101 经典浅灰控制室变体；
+   - ISA-18.2 报警管理：报警分四级着色（临界/高/中/低），带确认(ack)工作流，
+     报警横幅 + 汇总栏 + 未确认计数；
+   - FUXA（MIT）：工艺流程节点/管线在线图元、设备状态指示；
+   - ThingsBoard（Apache-2.0）：状态卡（值 + 单位 + 阈值进度条）；
+   - Frigate（MIT）：事件流列表、证据帧布局；
+   - Node-RED（Apache-2.0）：节点连线视觉；
+   - SCADA-LTS（GPL，仅设计参考）：卷归档/历史报表的表单范式。
+   反 AI 特征约定：无玻璃拟态、无霓虹渐变、无紫粉配色、无圆角大卡片、
+   无表情符号、无营销文案；锐角 2px、1px 实线边框、等宽数字、密集排布。
+   主题切换：html[data-theme] = light（默认）| dark，由顶栏按钮控制并记忆。
+   ========================================================================== */
+
+:root {
+  /* 底色（ISA-101：三个灰阶层次，状态色除外一律降饱和） */
+  --bg-0: #16181b;
+  --bg-1: #1c1f23;
+  --bg-2: #23272c;
+  --bg-3: #2a2f35;
+  --line: #383e46;
+  --line-strong: #4a515a;
+
+  /* 文本 */
+  --text: #c9ced6;
+  --text-hi: #eef1f5;
+  --text-dim: #8a929c;
+  --text-faint: #5d646d;
+
+  /* 状态色（非正常态专用，克制使用） */
+  --ok: #3fae5c;
+  --ok-bg: rgba(63, 174, 92, .12);
+  --warn: #c9a227;
+  --warn-bg: rgba(201, 162, 39, .13);
+  --alarm: #c9443a;
+  --alarm-bg: rgba(201, 68, 58, .14);
+  --info: #4a7fb5;
+  --info-bg: rgba(74, 127, 181, .12);
+  --run: #43a06e;
+
+  /* 状态文本色（深底用浅色字，浅底由 light 主题覆盖为深色字） */
+  --ok-text: #9fd9ae;
+  --warn-text: #e3cf8e;
+  --alarm-text: #ecb4af;
+
+  /* 通用叠加 */
+  --zebra: rgba(255, 255, 255, .015);
+  --overlay: rgba(8, 9, 11, .78);
+
+  /* 版面 */
+  --top-h: 52px;
+  --side-w: 184px;
+  --foot-h: 30px;
+  --radius: 2px;
+  --mono: 'Consolas', 'JetBrains Mono', 'Courier New', monospace;
+  --sans: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* 浅色主题：ISA-101 经典浅灰控制室变体（画面区仍保持深底以保证图像对比） */
+html[data-theme='light'] {
+  --bg-0: #e9ebee;
+  --bg-1: #f3f4f6;
+  --bg-2: #e6e8eb;
+  --bg-3: #dadee2;
+  --line: #c3c9d0;
+  --line-strong: #a6aeb8;
+
+  --text: #2b3038;
+  --text-hi: #12151a;
+  --text-dim: #596069;
+  --text-faint: #828a94;
+
+  --ok: #2e8b4c;
+  --ok-bg: rgba(46, 139, 76, .10);
+  --warn: #967a0e;
+  --warn-bg: rgba(150, 122, 14, .14);
+  --alarm: #b3372d;
+  --alarm-bg: rgba(179, 55, 45, .10);
+  --info: #33689c;
+  --info-bg: rgba(51, 104, 156, .10);
+  --run: #2e8b5c;
+
+  --ok-text: #1c7539;
+  --warn-text: #7d640a;
+  --alarm-text: #9e322a;
+
+  --zebra: rgba(0, 0, 0, .03);
+  --overlay: rgba(24, 28, 34, .45);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #app { height: 100%; }
+
+body {
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- 框架布局 */
+.app {
+  display: grid;
+  grid-template-rows: var(--top-h) 1fr var(--foot-h);
+  grid-template-columns: var(--side-w) 1fr;
+  grid-template-areas: 'top top' 'side content' 'foot foot';
+  height: 100%;
+}
+
+/* 顶栏：左侧标识 + 中部设备状态集群 + 主题切换 + 右侧时钟 */
+.topbar {
+  grid-area: top;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-strong);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  background: var(--bg-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-hi);
+  font: 700 12px/1 var(--mono);
+  letter-spacing: .5px;
+}
+.brand-title { font-size: 15px; font-weight: 600; color: var(--text-hi); letter-spacing: .3px; }
+.brand-sub { font-size: 12px; color: var(--text-dim); margin-top: 1px; }
+
+/* 设备状态集群（迁移自 FUXA 顶栏设备指示） */
+.status-cluster { display: flex; align-items: center; gap: 0; }
+.status-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px; height: var(--top-h);
+  border-left: 1px solid var(--line);
+  font-size: 13px; color: var(--text-dim);
+  white-space: nowrap;
+}
+.status-item b { font-family: var(--mono); font-weight: 600; color: var(--text); }
+.led {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-faint);
+  flex: none;
+}
+.led.on { background: var(--ok); box-shadow: 0 0 6px rgba(63, 174, 92, .55); }
+.led.bad { background: var(--alarm); }
+.led.warn { background: var(--warn); }
+.led.blink { animation: led-blink 1s steps(2, start) infinite; }
+@keyframes led-blink { to { visibility: hidden; } }
+
+.top-clock {
+  padding: 0 4px 0 14px; height: var(--top-h);
+  display: flex; align-items: center;
+  border-left: 1px solid var(--line);
+  font-family: var(--mono); font-size: 13px; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 侧栏：导航（SCADA 侧向页签范式，当前页左侧色条标识） */
+.side {
+  grid-area: side;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line-strong);
+  padding: 8px 0;
+  display: flex; flex-direction: column;
+}
+.nav-section {
+  padding: 13px 14px 6px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.nav-item {
+  padding: 9px 14px 9px 12px;
+  color: var(--text-dim); text-decoration: none;
+  font-size: 14px;
+  border-left: 3px solid transparent;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.nav-item:hover { background: var(--bg-2); color: var(--text); }
+.nav-item.active {
+  background: var(--bg-2);
+  border-left-color: var(--info);
+  color: var(--text-hi);
+}
+.nav-count {
+  font: 600 12px/1 var(--mono);
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  background: var(--alarm);
+  color: #fff;
+}
+.nav-count.zero { display: none; }
+
+/* 内容区 */
+.content { grid-area: content; overflow: auto; padding: 10px; }
+.content::-webkit-scrollbar, .stream-scroll::-webkit-scrollbar,
+.page::-webkit-scrollbar { width: 10px; height: 10px; }
+.content::-webkit-scrollbar-thumb,
+.stream-scroll::-webkit-scrollbar-thumb,
+.page::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 0; }
+.content::-webkit-scrollbar-track,
+.stream-scroll::-webkit-scrollbar-track,
+.page::-webkit-scrollbar-track { background: var(--bg-1); }
+
+/* 底栏：报警汇总条（ISA-18.2 alarm summary） */
+.statusbar {
+  grid-area: foot;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 12px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-strong);
+  font-size: 12px; color: var(--text-dim);
+}
+.statusbar .left, .statusbar .right { display: flex; align-items: center; gap: 16px; }
+.alarm-summary { display: flex; align-items: center; gap: 10px; }
+.alarm-summary .cnt {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 12px;
+}
+.alarm-summary .cnt i {
+  width: 7px; height: 7px; border-radius: 1px; display: inline-block;
+}
+.pri-critical i, .pri-critical { color: var(--alarm); }
+.pri-critical i { background: var(--alarm); }
+.pri-warn i, .pri-warn { color: var(--warn); }
+.pri-warn i { background: var(--warn); }
+.pri-info i, .pri-info { color: var(--info); }
+.pri-info i { background: var(--info); }
+.statusbar.alert {
+  background: var(--alarm-bg);
+  border-top-color: var(--alarm);
+  color: var(--alarm-text);
+}
+
+/* ---------------------------------------------------------------- 通用组件 */
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-dim); font-size: 13px; }
+.dim { color: var(--text-faint); }
+
+.panel {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+.panel-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: .4px;
+}
+.panel-hd .sub { font-weight: 400; color: var(--text-faint); font-size: 12px; }
+.panel-bd { padding: 10px 12px; }
+.panel-bd.flush { padding: 0; }
+
+/* 工具条 */
+.toolbar {
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap;
+  padding: 9px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+.toolbar .spacer { flex: 1; }
+.field-label { font-size: 12px; color: var(--text-dim); margin-right: -3px; white-space: nowrap; }
+
+/* 控件：锐角、实线边框、聚焦高亮（非发光） */
+.input, select.input {
+  background: var(--bg-0); color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 6px 9px; font-size: 13px;
+  font-family: var(--sans);
+  outline: none; min-width: 90px;
+}
+html[data-theme='light'] .input,
+html[data-theme='light'] select.input { background: #fdfdfe; }
+.input:focus { border-color: var(--info); }
+.input.mono { font-family: var(--mono); }
+input[type='checkbox'] { accent-color: var(--info); width: 15px; height: 15px; }
+
+.btn {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-2); color: var(--text);
+  padding: 6px 14px; font-size: 13px;
+  cursor: pointer; white-space: nowrap;
+  font-family: var(--sans);
+}
+.btn:hover { background: var(--bg-3); border-color: var(--text-faint); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: #234f7d; border-color: #2d6199; color: #eaf2fb; }
+.btn.primary:hover { background: #2a5d92; }
+.btn.danger { background: #6e2a24; border-color: #8a3a32; color: #f3d2cf; }
+.btn.danger:hover { background: #823229; }
+.btn.ok { border-color: var(--ok); color: var(--ok-text); }
+.btn.bad { border-color: var(--alarm); color: var(--alarm-text); }
+.btn.tiny { padding: 3px 9px; font-size: 12px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+
+/* 表格：SCADA 归档表范式（斑马纹、紧凑行高、右对齐数值） */
+.grid-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.grid-table th, .grid-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 7px 10px; text-align: left;
+}
+.grid-table th {
+  color: var(--text-dim); font-weight: 600; font-size: 12px;
+  background: var(--bg-2);
+  letter-spacing: .5px;
+  position: sticky; top: 0; z-index: 1;
+}
+.grid-table tbody tr:nth-child(even) { background: var(--zebra); }
+.grid-table tbody tr:hover { background: var(--bg-2); }
+.grid-table td.num { text-align: right; font-family: var(--mono); }
+
+/* 状态标签：底色极淡、左侧小方块标识（ISA 状态显示惯例） */
+.tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; font-size: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+.tag::before {
+  content: ''; width: 6px; height: 6px; border-radius: 1px;
+  background: currentColor; opacity: .8;
+}
+.tag.pending { color: var(--warn); border-color: rgba(201, 162, 39, .45); }
+.tag.confirmed { color: var(--ok); border-color: rgba(63, 174, 92, .45); }
+.tag.false_alarm { color: var(--alarm); border-color: rgba(201, 68, 58, .45); }
+.tag.info { color: var(--info); border-color: rgba(74, 127, 181, .45); }
+.tag.warn { color: var(--warn); border-color: rgba(201, 162, 39, .45); }
+.tag.critical { color: var(--alarm); border-color: rgba(201, 68, 58, .55); background: var(--alarm-bg); }
+.tag.ok { color: var(--ok); border-color: rgba(63, 174, 92, .45); }
+.tag.run { color: var(--run); border-color: rgba(67, 160, 110, .45); }
+.tag.idle { color: var(--text-dim); }
+html[data-theme='light'] .tag.pending { border-color: rgba(150, 122, 14, .55); }
+html[data-theme='light'] .tag.confirmed { border-color: rgba(46, 139, 76, .5); }
+html[data-theme='light'] .tag.false_alarm { border-color: rgba(179, 55, 45, .5); }
+html[data-theme='light'] .tag.info { border-color: rgba(51, 104, 156, .5); }
+html[data-theme='light'] .tag.warn { border-color: rgba(150, 122, 14, .55); }
+html[data-theme='light'] .tag.critical { border-color: rgba(179, 55, 45, .6); }
+html[data-theme='light'] .tag.ok { border-color: rgba(46, 139, 76, .5); }
+html[data-theme='light'] .tag.run { border-color: rgba(46, 139, 92, .5); }
+
+/* 等级徽章（质量判级） */
+.grade {
+  display: inline-block; min-width: 24px; text-align: center;
+  font: 700 14px/1 var(--mono);
+  padding: 3px 7px; border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+}
+.grade.grade-a, .kpi b.grade-a { color: var(--ok-text); }
+.grade.grade-b, .kpi b.grade-b { color: var(--warn-text); }
+.grade.grade-c, .kpi b.grade-c { color: var(--alarm-text); }
+.grade.grade-a { border-color: var(--ok); background: var(--ok-bg); }
+.grade.grade-b { border-color: var(--warn); background: var(--warn-bg); }
+.grade.grade-c { border-color: var(--alarm); background: var(--alarm-bg); }
+
+/* ---------------------------------------------------------------- KPI / 状态卡 */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px; margin-bottom: 10px;
+}
+.kpi {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px 11px;
+}
+.kpi small {
+  display: block; font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: .4px;
+}
+.kpi b {
+  display: block; font: 600 24px/1.2 var(--mono);
+  color: var(--text-hi);
+  margin-top: 6px; font-variant-numeric: tabular-nums;
+}
+.kpi .unit { font-size: 12px; color: var(--text-faint); margin-left: 3px; font-family: var(--sans); }
+.kpi.ok { border-left-color: var(--ok); }
+.kpi.warn { border-left-color: var(--warn); }
+.kpi.bad { border-left-color: var(--alarm); }
+.kpi.info { border-left-color: var(--info); }
+.kpi .state-line {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 5px; font-size: 13px; color: var(--text-dim);
+}
+
+/* 阈值进度条（ThingsBoard 状态卡迁移：细横条 + 刻度感） */
+.gauge-bar {
+  height: 4px; margin-top: 8px;
+  background: var(--bg-3);
+  border-radius: 1px; overflow: hidden;
+}
+.gauge-bar i {
+  display: block; height: 100%;
+  background: var(--ok);
+  transition: width .3s ease;
+}
+.gauge-bar i.b { background: var(--warn); }
+.gauge-bar i.c { background: var(--alarm); }
+.gauge-bar i.i { background: var(--info); }
+
+/* ---------------------------------------------------------------- 监控页 */
+.dash { display: flex; flex-direction: column; height: 100%; }
+.dash-main {
+  flex: 1; display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 10px; min-height: 0;
+}
+.canvas-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+
+/* 画面区两种主题下都保持深底（保证图像对比与叠加层可读性） */
+.canvas-wrap {
+  position: relative; background: #0b0d0f;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: grid; place-items: center;
+  flex: 1; min-height: 0;
+}
+.canvas-wrap img { max-width: 100%; max-height: 100%; display: block; }
+
+/* 画面舞台 + 矢量检测叠加层：图片与 SVG 严格同尺寸，坐标 1:1 映射帧像素 */
+.canvas-stage {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%; max-height: 100%;
+}
+.canvas-stage img { max-width: 100%; max-height: 100%; display: block; }
+.det-overlay {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.det-box {
+  fill: none;
+  stroke: #2ee06a;
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.det-label-bg {
+  fill: rgba(9, 40, 20, .82);
+  stroke: #2ee06a;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.det-label-text {
+  fill: #b6f5c8;
+  font: 600 12px var(--mono);
+  letter-spacing: .3px;
+}
+.canvas-tag {
+  position: absolute; top: 8px; left: 8px;
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  background: rgba(12, 14, 16, .75);
+  border: 1px solid #383e46;
+  color: #8a929c;
+  border-radius: var(--radius);
+}
+.placeholder {
+  color: #5d646d; font-size: 13px;
+  padding: 30px; text-align: center; line-height: 1.8;
+}
+
+/* 报警横幅（ISA-18.2：仅报警时出现，临界级闪烁边框） */
+.alarm-banner {
+  position: absolute; top: 8px; left: 8px; right: 8px;
+  background: rgba(110, 32, 27, .92);
+  border: 1px solid #c9443a;
+  color: #f2dedb;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; gap: 10px;
+}
+.alarm-banner.critical { animation: banner-blink 1.2s steps(2, start) infinite; }
+@keyframes banner-blink { 50% { border-color: transparent; } }
+
+/* 画面 HUD（FUXA 运行数据叠加层） */
+.hud {
+  position: absolute; left: 8px; bottom: 8px;
+  display: flex; gap: 0;
+  background: rgba(12, 14, 16, .78);
+  border: 1px solid #383e46;
+  border-radius: var(--radius);
+  font-size: 12px; color: #8a929c;
+  overflow: hidden;
+}
+.hud span { padding: 5px 11px; border-right: 1px solid #383e46; }
+.hud span:last-child { border-right: 0; }
+.hud b { color: #c9ced6; font-family: var(--mono); margin-left: 4px; }
+
+/* 工艺流程图（FUXA 迁移：设备节点 + 流动管线） */
+.process-strip {
+  display: flex; align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.pnode {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  min-width: 78px;
+}
+.pnode .pdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-faint);
+}
+.pnode .plabel { font-size: 12px; color: var(--text-dim); }
+.pnode.on { border-color: rgba(67, 160, 110, .6); }
+.pnode.on .pdot { background: var(--ok); box-shadow: 0 0 5px rgba(63,174,92,.5); }
+.pnode.on .plabel { color: var(--ok-text); }
+.pnode.fault { border-color: var(--alarm); }
+.pnode.fault .pdot { background: var(--alarm); }
+.pnode.fault .plabel { color: var(--alarm-text); }
+.pipe {
+  flex: 1; height: 2px; min-width: 16px;
+  background: var(--line-strong);
+  position: relative; overflow: hidden;
+}
+.pipe.on { background: rgba(67, 160, 110, .35); }
+.pipe.on::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(120, 210, 160, .9), transparent);
+  animation: pipe-flow 1.6s linear infinite;
+}
+@keyframes pipe-flow { from { left: -40%; } to { left: 100%; } }
+
+/* 缺陷事件流（Frigate 迁移：事件列表） */
+.stream {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.stream-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px; font-weight: 600;
+}
+.stream-hd .sub { color: var(--text-faint); font-weight: 400; font-size: 12px; }
+.stream-scroll { overflow: auto; flex: 1; }
+.stream-row {
+  display: grid;
+  grid-template-columns: 66px 1fr 56px;
+  gap: 8px; align-items: center;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.stream-row .t { color: var(--text-faint); font-family: var(--mono); }
+.stream-row .c { color: var(--text); }
+.stream-row .p { color: var(--text-dim); font-family: var(--mono); text-align: right; }
+.stream-row.conf-hi .p { color: var(--warn); }
+.stream-empty { padding: 24px; text-align: center; color: var(--text-faint); font-size: 13px; }
+
+/* ---------------------------------------------------------------- 报表页 */
+.report-grid {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 10px;
+}
+.chart-box { height: 320px; }
+@media (max-width: 1080px) {
+  .report-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------------------------------------------------------- 弹窗 */
+.modal {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  display: grid; place-items: center; z-index: 50;
+}
+.modal-box {
+  width: min(760px, 92vw);
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  display: flex; flex-direction: column;
+}
+.modal-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px; font-weight: 600;
+}
+.modal-bd {
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  max-height: 76vh; overflow: auto;
+}
+.modal-box img.evidence {
+  max-height: 56vh; object-fit: contain;
+  background: #000;
+  border: 1px solid var(--line);
+}
+.modal-ft {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------------------------------------------------------------- 设置页 */
+.page-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: .6px;
+  padding: 2px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.page-title::before {
+  content: ''; width: 3px; height: 13px;
+  background: var(--info);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 14px;
+}
+.form-row { display: flex; flex-direction: column; gap: 3px; }
+.form-row label { font-size: 12px; color: var(--text-dim); }
+.form-row .input { width: 100%; }
+.form-row.inline { flex-direction: row; align-items: center; gap: 8px; }
+.check-line { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text); }
+
+.note {
+  font-size: 12px; color: var(--text-faint);
+  line-height: 1.7; margin-top: 8px;
+  padding-top: 8px; border-top: 1px dashed var(--line);
+}
+.msg-line { font-size: 13px; color: var(--warn); }
+.msg-line.ok { color: var(--ok); }

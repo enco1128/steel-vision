@@ -1,0 +1,161 @@
+{
+  "report": {
+    "duration_sec": 363,
+    "coils_run": 3,
+    "samples": 12,
+    "api_errors": 0,
+    "backend_alive": true,
+    "mem_growth_pct": 0.0,
+    "mem_baseline_mb": 0.0,
+    "mem_last_mb": 0.0,
+    "db_mb_last": 0.05,
+    "frames_last": 18,
+    "verdict": "PASS"
+  },
+  "samples": [
+    {
+      "ts": "2026-11-15 20:36:54",
+      "t_sec": 37,
+      "label": "coil-1",
+      "rss_mb": 0.0,
+      "db_mb": 0.04,
+      "frames": 4,
+      "running": true,
+      "frame_idx": 121,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:37:24",
+      "t_sec": 67,
+      "label": "coil-1",
+      "rss_mb": 0.0,
+      "db_mb": 0.04,
+      "frames": 5,
+      "running": true,
+      "frame_idx": 288,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:37:54",
+      "t_sec": 97,
+      "label": "coil-1",
+      "rss_mb": 0.0,
+      "db_mb": 0.04,
+      "frames": 6,
+      "running": true,
+      "frame_idx": 460,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:38:24",
+      "t_sec": 127,
+      "label": "coil-1",
+      "rss_mb": 0.0,
+      "db_mb": 0.04,
+      "frames": 8,
+      "running": true,
+      "frame_idx": 603,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:38:57",
+      "t_sec": 160,
+      "label": "coil-2",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 9,
+      "running": true,
+      "frame_idx": 156,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:39:27",
+      "t_sec": 190,
+      "label": "coil-2",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 11,
+      "running": true,
+      "frame_idx": 311,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:39:57",
+      "t_sec": 220,
+      "label": "coil-2",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 11,
+      "running": true,
+      "frame_idx": 462,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:40:27",
+      "t_sec": 250,
+      "label": "coil-2",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 13,
+      "running": true,
+      "frame_idx": 605,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:41:00",
+      "t_sec": 284,
+      "label": "coil-3",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 14,
+      "running": true,
+      "frame_idx": 142,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:41:30",
+      "t_sec": 314,
+      "label": "coil-3",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 16,
+      "running": true,
+      "frame_idx": 289,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:42:00",
+      "t_sec": 344,
+      "label": "coil-3",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 16,
+      "running": true,
+      "frame_idx": 490,
+      "last_error": "",
+      "api_ok": true
+    },
+    {
+      "ts": "2026-11-15 20:42:16",
+      "t_sec": 360,
+      "label": "coil-3",
+      "rss_mb": 0.0,
+      "db_mb": 0.05,
+      "frames": 18,
+      "running": true,
+      "frame_idx": 564,
+      "last_error": "",
+      "api_ok": true
+    }
+  ]
+}

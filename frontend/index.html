@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SteelVision · 带钢表面缺陷检测系统</title>
+    <script>
+      /* 主题预载：默认浅色（录制形态），用户手动切过则按记忆恢复 */
+      document.documentElement.dataset.theme =
+        localStorage.getItem('sv_theme') === 'dark' ? 'dark' : 'light'
+    </script>
+    <script>
+      /* 主题预载：避免刷新时深浅主题闪烁 */
+      document.documentElement.dataset.theme =
+        localStorage.getItem('sv_theme') === 'light' ? 'light' : 'dark'
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
