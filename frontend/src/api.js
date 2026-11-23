@@ -1,4 +1,9 @@
+import { demoApi } from './demo'
+
+const DEMO = import.meta.env.VITE_DEMO === '1'
+
 export async function api(path, opts = {}) {
+  if (DEMO) return demoApi(path, opts)
   const token = localStorage.getItem('sv_token') || ''
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) }
   if (token) headers.Authorization = `Bearer ${token}`

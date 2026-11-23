@@ -70,7 +70,7 @@
           <button class="btn tiny" @click="detail = null">关闭</button>
         </div>
         <div class="modal-bd">
-          <img v-if="detail.evidence_path" class="evidence" :src="`/api/evidence/${detail.id}`" alt="证据帧" />
+          <img v-if="evidenceSrc" class="evidence" :src="evidenceSrc" alt="证据帧" />
           <p v-else class="muted">该缺陷置信度低于证据阈值，未保存证据帧（检测事件已入库）</p>
           <input v-model="detail.review_note" class="input" placeholder="复核备注（可选）" />
         </div>
@@ -86,6 +86,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
+import { evidenceUrl } from '../demo'
 
 const coils = ref([])
 const coilId = ref(null)
@@ -93,6 +94,9 @@ const defects = ref([])
 const detail = ref(null)
 const filter = ref('')
 const msg = ref('')
+
+const evidenceSrc = computed(() =>
+  detail.value ? evidenceUrl(detail.value) : '')
 
 const tagLabel = { pending: '待复核', confirmed: '已确认', false_alarm: '误报' }
 const statusLabel = { running: '检测中', closed: '已结束' }

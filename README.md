@@ -4,6 +4,16 @@
 
 界面按 **ISA-101 高性能 HMI** 与 **ISA-18.2 报警管理**行业标准设计：中性灰底、颜色仅表异常、分级报警 + 确认工作流、检测框实时矢量叠加。
 
+## 在线演示（无需安装）
+
+**[https://enco1128.github.io/steel-vision/](https://enco1128.github.io/steel-vision/)**
+
+基于真实运行系统导出的脱敏快照数据，在 GitHub Pages 上静态回放：五个页面均可操作
+（复核标记误报会实时改变报表判级、报警可确认、设置可保存），实时画面循环回放真实检测帧。
+刷新页面即恢复初始状态——演示环境不写入任何服务端。
+
+> 线上演示为纯前端静态版（数据快照 + 内存态写操作）；完整功能请按下文「快速开始」本地运行。
+
 ![系统演示](docs/demo.gif)
 
 ## 功能总览
@@ -90,6 +100,25 @@ cd steel-vision\desktop && pip install -r requirements-desktop.txt && python she
 生产部署请务必修改默认密码并关闭演示数据。
 
 无模型权重时系统使用**合成帧**冒烟运行（走完整检测-落库-报警-推送链路），便于无 GPU 环境体验全流程。
+
+## 静态演示构建（GitHub Pages）
+
+把本机运行中的系统导出为脱敏快照，构建为纯静态前端，推送到 `main` 后由 GitHub Actions
+自动发布到 Pages（工作流见 `.github/workflows/pages.yml`）：
+
+```powershell
+# 1) 后端运行中，导出脱敏快照 → frontend/public/demo/snapshot.json
+cd steel-vision\backend
+python scripts/export_snapshot.py --frames 12 --source <NEU 测试集目录>
+
+# 2) 演示模式构建（产物在 frontend/dist，可直接部署到任意静态托管）
+cd steel-vision\frontend
+$env:VITE_DEMO='1'; npm run build
+```
+
+演示构建特性：API 全部走本地快照、WebSocket 用录制帧循环回放、复核/报警/设置写操作仅在
+内存生效（刷新恢复）、Hash 路由适配 Pages 子路径。快照导出时已做脱敏（模型/数据源路径、
+临时自检卷全部剔除；证据帧仅含公开样本数据集 NEU 的标注图，不含任何现场采集数据）。
 
 ## 测试
 
