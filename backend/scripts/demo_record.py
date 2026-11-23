@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -15,9 +16,10 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8000"
-REC_DIR = Path(r"d:\横向项目\steel-vision\docs\rec")
+REPO = Path(__file__).resolve().parents[2]          # steel-vision/
+REC_DIR = REPO / "docs" / "rec"
 TMP_DIR = REC_DIR / "_tmp"
-STORY_COIL = "DEMO-1115-224116"   # 故事线完整的演示卷（89 确认 / 84 误报 / 判级 B）
+STORY_COIL = os.environ.get("SV_STORY_COIL", "DEMO-1115-224116")
 
 
 def http(path: str, method: str = "GET", token: str = "",

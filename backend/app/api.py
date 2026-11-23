@@ -98,7 +98,7 @@ def logout(request: Request):
 @router.get("/system/status")
 def system_status():
     cfg = settings.get()
-    workspace = Path(__file__).resolve().parents[2].parent  # 横向项目/
+    workspace = Path(__file__).resolve().parents[2].parent  # 上层工作区
     candidates = [
         workspace / "steel-surface-defect" / "datasets" / "processed" / "neu_det" / "images" / "test",
         workspace / "steel-surface-defect" / "datasets" / "processed" / "gc10det" / "images" / "test",

@@ -1,7 +1,5 @@
-"""系统元信息冒烟：版本口径（无合同号）与健康检查（完整应用含启动事件）。"""
+"""系统元信息冒烟：版本口径（无内部编号）与健康检查（完整应用含启动事件）。"""
 from __future__ import annotations
-
-import json
 
 from fastapi.testclient import TestClient
 
@@ -12,7 +10,7 @@ def test_version_and_health():
     with TestClient(main_app) as c:
         v = c.get("/version").json()
         assert v["version"] == "0.8.0"
-        assert "ACHXKT" not in json.dumps(v, ensure_ascii=False)
+        assert set(v.keys()) == {"app", "version", "protocol"}
 
         h = c.get("/api/health")
         assert h.status_code == 200

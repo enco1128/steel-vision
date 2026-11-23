@@ -7,15 +7,21 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.request
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8000"
 SHOTS = "scripts/shots"
-NEU_SOURCE = r"D:\横向项目\steel-surface-defect\datasets\processed\neu_det\images\test"
+REPO = Path(__file__).resolve().parents[2]          # steel-vision/
+NEU_SOURCE = str(Path(os.environ.get(
+    "SV_DEMO_SOURCE",
+    REPO.parent / "steel-surface-defect" / "datasets" / "processed"
+    / "neu_det" / "images" / "test")))
 
 
 def http(path: str, method: str = "GET", token: str = "",

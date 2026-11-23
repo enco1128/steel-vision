@@ -1,7 +1,7 @@
-"""把 GIF 插入 PPT 指定页（默认第 11 页「软件原型系统」右侧空位）。
+"""把 GIF 插入 PPT 指定页（默认第 11 页右侧空位）。
 
 用法：
-    py -3.12 scripts/insert_ppt.py docs/rec/demo.gif
+    py -3.12 scripts/insert_ppt.py demo.gif --ppt 你的演示文稿.pptx
     py -3.12 scripts/insert_ppt.py demo.gif --slide 11 --out test-copy.pptx
 """
 from __future__ import annotations
@@ -16,10 +16,8 @@ from PIL import Image
 from pptx import Presentation
 from pptx.util import Inches
 
-DEFAULT_PPT = r"D:\横向项目\中期检查汇报_骨架.pptx"
 
-
-def insert(gif: str, ppt: str = DEFAULT_PPT, slide_no: int = 11,
+def insert(gif: str, ppt: str, slide_no: int = 11,
            left: float = 9.62, top: float = 1.78, width: float = 3.24,
            out: str = "") -> Path:
     gif_path = Path(gif)
@@ -59,7 +57,7 @@ def insert(gif: str, ppt: str = DEFAULT_PPT, slide_no: int = 11,
 def main() -> int:
     ap = argparse.ArgumentParser(description="GIF 插入 PPT")
     ap.add_argument("gif")
-    ap.add_argument("--ppt", default=DEFAULT_PPT)
+    ap.add_argument("--ppt", required=True, help="目标演示文稿 .pptx")
     ap.add_argument("--slide", type=int, default=11)
     ap.add_argument("--left", type=float, default=9.62)
     ap.add_argument("--top", type=float, default=1.78)

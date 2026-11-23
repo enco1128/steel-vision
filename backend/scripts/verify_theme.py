@@ -28,7 +28,7 @@ def main() -> int:
         content = page.locator("body").inner_text()
         results["字号 body=14px"] = body_fs == "14px"
         results["字号 brand-title=15px"] = title_fs == "15px"
-        results["页面无合同号"] = "ACHXKT" not in content
+        results["页面无内部编号"] = "ACHX" not in content
         results["默认浅色主题"] = page.evaluate(
             "document.documentElement.dataset.theme") == "light"
 

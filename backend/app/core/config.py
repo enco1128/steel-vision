@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import Lock
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.json"
-WORKSPACE = Path(__file__).resolve().parents[4]  # d:\横向项目
+WORKSPACE = Path(__file__).resolve().parents[4]  # 上层工作区（含训练工程与数据集）
 
 DEFAULTS: dict = {
     "model_path": str(WORKSPACE / "steel-surface-defect" / "runs" / "train"
